@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Field Index — Crop Disease Diagnosis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #EDEADF;
+    --paper-dark: #E3DFCF;
+    --ink: #22301F;
+    --ink-soft: #4C5A45;
+    --forest: #2F4A2C;
+    --forest-deep: #1B2A1E;
+    --rust: #B75A2C;
+    --lichen: #8A9B4E;
+    --card: #F5F2E8;
+    --line: #C9C2A8;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:
+      radial-gradient(circle at 1px 1px, rgba(34,48,31,0.07) 1px, transparent 0) 0 0/16px 16px,
+      var(--paper);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:32px 20px 80px;
+  }
+  .wrap{max-width:1140px;margin:0 auto;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:2px solid var(--forest);
+    padding-bottom:18px;
+    margin-bottom:8px;
+    gap:24px;
+    flex-wrap:wrap;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--rust);
+    margin:0 0 6px;
+  }
+  h1{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:clamp(28px,4vw,44px);
+    margin:0;
+    line-height:1.05;
+    letter-spacing:-0.01em;
+  }
+  h1 em{font-style:italic;color:var(--forest);font-weight:600;}
+  .plate-no{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    text-align:right;
+    white-space:nowrap;
+  }
+  .sub{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:14px 0 32px;
+    max-width:640px;
+    line-height:1.6;
+  }
+
+  .layout{
+    display:grid;
+    grid-template-columns:minmax(280px,380px) 1fr;
+    gap:36px;
+    align-items:start;
+  }
+  @media (max-width:860px){ .layout{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    position:relative;
+  }
+  .panel::before{
+    content:"";
+    position:absolute;
+    top:-1px;left:-1px;right:-1px;
+    height:5px;
+    background:repeating-linear-gradient(90deg, var(--forest) 0 8px, transparent 8px 14px);
+  }
+  .panel-inner{padding:22px 20px 24px;}
+
+  .group{margin-bottom:22px;}
+  .group:last-child{margin-bottom:0;}
+  .group-title{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--forest);
+    margin:0 0 10px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .group-title::after{
+    content:"";
+    flex:1;
+    height:1px;
+    background:var(--line);
+  }
+  .opt{
+    display:flex;
+    align-items:flex-start;
+    gap:9px;
+    padding:6px 4px;
+    cursor:pointer;
+    border-radius:3px;
+    font-size:13.5px;
+    line-height:1.35;
+  }
+  .opt:hover{background:rgba(47,74,44,0.06);}
+  .opt input{
+    margin-top:3px;
+    accent-color:var(--forest);
+    width:14px;height:14px;
+    flex-shrink:0;
+  }
+  .opt span{color:var(--ink);}
+
+  .reset-btn{
+    margin-top:18px;
+    width:100%;
+    background:transparent;
+    border:1px solid var(--forest);
+    color:var(--forest);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    padding:10px;
+    cursor:pointer;
+    transition:background .15s, color .15s;
+  }
+  .reset-btn:hover{background:var(--forest);color:var(--paper);}
+
+  /* results */
+  .results-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+    gap:8px;
+  }
+  .results-head h2{
+    font-family:'Fraunces',serif;
+    font-size:19px;
+    margin:0;
+    font-weight:600;
+  }
+  .count-tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+  }
+
+  .empty-state{
+    border:1px dashed var(--line);
+    padding:40px 24px;
+    text-align:center;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    line-height:1.7;
+  }
+
+  .cards{display:flex;flex-direction:column;gap:16px;}
+
+  .card{
+    background:var(--card);
+    border:1px solid var(--line);
+    padding:18px 20px 20px;
+    position:relative;
+    display:grid;
+    grid-template-columns:64px 1fr auto;
+    gap:16px;
+    align-items:start;
+  }
+  @media (max-width:600px){
+    .card{grid-template-columns:48px 1fr; }
+    .card .match-col{grid-column:1/-1; display:flex; align-items:center; gap:10px; margin-top:8px;}
+  }
+  .card.best{border-color:var(--rust);}
+  .stamp{
+    position:absolute;
+    top:14px; right:18px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--rust);
+    border:1.5px solid var(--rust);
+    padding:3px 8px;
+    transform:rotate(3deg);
+    opacity:0.9;
+  }
+  @media (max-width:600px){ .stamp{position:static; display:inline-block; margin-bottom:8px; transform:rotate(-1deg);} }
+
+  .icon{
+    width:64px;height:64px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--paper-dark);
+    color:var(--forest);
+    flex-shrink:0;
+    overflow:hidden;
+  }
+  .icon svg{width:28px;height:28px;}
+  .icon img{
+    width:100%;height:100%;
+    object-fit:cover;
+    display:block;
+  }
+  .icon .no-photo{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:8px;
+    text-align:center;
+    color:var(--ink-soft);
+    letter-spacing:.04em;
+    line-height:1.3;
+  }
+
+  .card-body .common{
+    font-family:'Fraunces',serif;
+    font-weight:700;
+    font-size:19px;
+    margin:0 0 2px;
+    color:var(--ink);
+  }
+  .card-body .latin{
+    font-family:'IBM Plex Mono',monospace;
+    font-style:italic;
+    font-size:11.5px;
+    color:var(--ink-soft);
+    margin:0 0 10px;
+  }
+  .type-badge{
+    font-family:'IBM Plex Mono',monospace;
+    font-style:normal;
+    font-size:9px;
+    letter-spacing:.06em;
+    text-transform:uppercase;
+    padding:2px 6px;
+    border-radius:2px;
+    margin-left:4px;
+    display:inline-block;
+    color:#fff;
+  }
+  .type-fungal{background:var(--forest);}
+  .type-bacterial{background:var(--rust);}
+  .type-viral{background:#5A3A5A;}
+  .type-phytoplasma{background:#9C7A2E;}
+  .type-oomycete{background:#6B3A1F;}
+  .card-body p.desc{
+    font-size:13.5px;
+    line-height:1.55;
+    color:var(--ink);
+    margin:0 0 10px;
+    max-width:60ch;
+  }
+  .matched-tags{
+    display:flex;flex-wrap:wrap;gap:6px;
+    margin-bottom:10px;
+  }
+  .tag{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    padding:2px 7px;
+    border:1px solid var(--lichen);
+    color:var(--forest);
+    background:rgba(138,155,78,0.12);
+    border-radius:2px;
+  }
+  .treat{
+    font-size:12.5px;
+    color:var(--ink-soft);
+    border-left:2px solid var(--forest);
+    padding-left:10px;
+    line-height:1.5;
+  }
+  .treat b{color:var(--forest);font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;font-weight:600;}
+
+  .match-col{
+    text-align:right;
+    font-family:'IBM Plex Mono',monospace;
+  }
+  .match-pct{
+    font-size:24px;
+    font-weight:600;
+    color:var(--forest);
+    line-height:1;
+  }
+  .card.best .match-pct{color:var(--rust);}
+  .match-label{font-size:9.5px;color:var(--ink-soft);letter-spacing:.08em;text-transform:uppercase;}
+  .bar{
+    width:56px;height:4px;background:var(--line);margin-top:6px;margin-left:auto;
+    overflow:hidden;
+  }
+  .bar i{display:block;height:100%;background:var(--forest);}
+  .card.best .bar i{background:var(--rust);}
+
+  footer{
+    margin-top:50px;
+    padding-top:16px;
+    border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--ink-soft);
+    line-height:1.6;
+  }  .icon{cursor:pointer;}
+  .icon:hover{border-color:var(--forest);}
+
+  .lightbox-overlay{
+    display:none;
+    position:fixed; inset:0;
+    background:rgba(27,42,30,0.88);
+    z-index:1000;
+    align-items:center; justify-content:center;
+    padding:24px;
+  }
+  .lightbox-box{
+    background:var(--card);
+    border:1px solid var(--line);
+    max-width:min(720px,92vw);
+    width:100%;
+    padding:16px 16px 18px;
+    position:relative;
+  }
+  .lb-close{
+    position:absolute; top:8px; right:10px;
+    background:none; border:none;
+    font-size:26px; line-height:1;
+    color:var(--ink-soft); cursor:pointer;
+  }
+  .lb-close:hover{color:var(--rust);}
+  .lb-title{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--ink-soft); margin:2px 30px 12px 2px;
+  }
+  .lb-stage{
+    display:flex; align-items:center; gap:10px;
+  }
+  .lb-img{
+    width:100%; max-height:60vh; object-fit:contain;
+    background:var(--paper-dark);
+    border:1px solid var(--line);
+  }
+  .lb-nav{
+    background:var(--forest); color:var(--paper);
+    border:none; width:34px; height:34px; flex-shrink:0;
+    font-size:16px; cursor:pointer;
+    border-radius:2px;
+  }
+  .lb-nav:hover{background:var(--rust);}
+  .lb-thumbs{
+    display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;
+  }
+  .lb-thumb{
+    width:52px; height:52px; object-fit:cover;
+    border:2px solid transparent; opacity:0.6; cursor:pointer;
+  }
+  .lb-thumb.active{border-color:var(--rust); opacity:1;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <p class="eyebrow">Extension Field Guide · No. 07</p>
+      <h1>Crop Disease <em>Symptom Index</em></h1>
+    </div>
+    <div class="plate-no">SPECIMEN LOOKUP<br>TOOL — REV. 2026</div>
+  </header>
+  <p class="sub">Check what you observe on the plant — location, appearance, color, and conditions. The index cross-references your marks against 25 crop diseases spanning fungi, bacteria, viruses, phytoplasmas, and oomycetes, and ranks the closest matches. Each result is labeled by pathogen type. Not a substitute for lab confirmation on high-value crops.</p>
+
+  <div class="layout">
+    <div class="panel">
+      <div class="panel-inner" id="form"></div>
+    </div>
+
+    <div>
+      <div class="results-head">
+        <h2>Closest Matches</h2>
+        <span class="count-tag" id="countTag">0 symptoms selected</span>
+      </div>
+      <div id="results"></div>
+    </div>
+  </div>
+
+  <footer>
+    FIELD NOTE — This tool ranks by symptom overlap only. Confirm diagnosis via extension lab, tissue culture, PCR, or serological testing before applying any treatment program. Pathogen type (fungal, bacterial, viral, phytoplasma, oomycete) is shown on each card since treatment approaches differ significantly by type — e.g. bactericides and antivirals are not fungicides.
+  </footer>
+</div>
+
+<script>
+// ---------- SYMPTOM TAXONOMY ----------
+const GROUPS = [
+  { key:'part', title:'Plant Part Affected', options:[
+    ['leaf_lower','Lower / older leaves'],
+    ['leaf_new','New growth / young leaves'],
+    ['leaf_any','Leaves generally'],
+    ['stem','Stem or petiole'],
+    ['root','Roots or crown'],
+    ['fruit','Fruit or pod'],
+    ['flower','Flowers or buds'],
+    ['whole','Whole plant / sudden collapse'],
+  ]},
+  { key:'appearance', title:'Appearance', options:[
+    ['powdery','Powdery / dusty coating'],
+    ['fuzzy_mold','Fuzzy gray or fluffy mold'],
+    ['spots_circular','Circular spots'],
+    ['spots_irregular','Irregular blotchy spots'],
+    ['spots_angular','Angular spots (bound by veins)'],
+    ['rings','Concentric rings ("target" pattern)'],
+    ['pustules','Raised pustules or bumps'],
+    ['rot_soft','Soft, mushy rot'],
+    ['rot_dry','Dry, sunken rot'],
+    ['wilting','Wilting despite moist soil'],
+    ['vascular_stripe','Dark streaks inside stem when cut'],
+    ['canker','Sunken canker / dead bark patch'],
+    ['galls','Swollen galls'],
+    ['scab','Rough, corky scab texture'],
+  ]},
+  { key:'color', title:'Color Observed', options:[
+    ['white','White'],
+    ['gray','Gray'],
+    ['black','Black / sooty'],
+    ['brown','Brown / tan'],
+    ['yellow','Yellow'],
+    ['orange','Orange / rust-colored'],
+    ['purple','Purple-black margins'],
+    ['green','Green'],
+  ]},
+  { key:'cond', title:'Conditions', options:[
+    ['humid','High humidity recently'],
+    ['wet','Prolonged wet or rainy weather'],
+    ['cool','Cool temperatures'],
+    ['warm','Warm, humid weather'],
+    ['poor_air','Crowded planting / poor airflow'],
+    ['overhead','Overhead watering / sprinklers'],
+    ['spreading_fast','Spreading rapidly across field'],
+  ]},
+  { key:'systemic', title:'Systemic / Growth Distortion', options:[
+    ['necrosis','Tissue death / necrosis (general)'],
+    ['tip_necrosis','Tip or margin necrosis'],
+    ['leaf_blight','Rapid leaf blighting'],
+    ['leaf_distortion','Leaf distortion or crinkling'],
+    ['blister','Raised leaf blisters'],
+    ['streak','Streaking along veins'],
+    ['vein_clearing','Vein clearing (translucent veins)'],
+    ['witches_broom','Witches\' broom (dense bushy shoots)'],
+    ['virescence','Virescence (flowers turning green)'],
+    ['phylloidy','Phylloidy (flower parts turning leaf-like)'],
+  ]},
+];
+
+// ---------- DISEASE DATABASE ----------
+const DISEASES = [
+  { id:'powdery_mildew', type:'fungal', img:'photos/powdery_mildew.jpg', common:'Powdery Mildew', latin:'Erysiphales spp.',
+    tags:['leaf_any','leaf_new','powdery','white','poor_air','warm'],
+    desc:'A white to gray powdery coating spreads across leaf surfaces and stems, often starting on upper leaf faces, eventually stunting growth and distorting new shoots.',
+    treat:'Improve airflow and spacing, remove infected leaves, apply sulfur or potassium bicarbonate fungicide at first sign.' },
+
+  { id:'downy_mildew', type:'oomycete', img:'photos/downy_mildew.jpg', common:'Downy Mildew', latin:'Peronosporaceae spp.',
+    tags:['leaf_lower','leaf_any','yellow','fuzzy_mold','gray','humid','wet','cool'],
+    desc:'Pale yellow blotches appear on upper leaf surfaces with a gray-purple fuzzy growth on the undersides, usually following cool, damp nights.',
+    treat:'Avoid overhead watering, increase spacing, apply copper-based fungicide, remove and destroy infected foliage.' },
+
+  { id:'early_blight', type:'fungal', img:'photos/early_blight.jpg', common:'Early Blight', latin:'Alternaria solani',
+    tags:['leaf_lower','spots_circular','rings','brown','warm','humid'],
+    desc:'Dark brown spots with concentric target-like rings form on lower, older leaves first, surrounded by a yellow halo, and work upward over time.',
+    treat:'Remove lower infected leaves, rotate crops yearly, mulch to prevent soil splash, apply chlorothalonil or copper fungicide.' },
+
+  { id:'late_blight', type:'oomycete', img:'photos/late_blight.jpg', common:'Late Blight', latin:'Phytophthora infestans',
+    tags:['leaf_any','stem','fruit','spots_irregular','brown','fuzzy_mold','wet','cool','spreading_fast'],
+    desc:'Large, water-soaked, irregular gray-brown blotches spread fast across leaves and stems, often with white fuzzy growth on undersides in wet weather; entire fields can collapse within days.',
+    treat:'Destroy infected plants immediately, avoid overhead irrigation, apply protectant fungicide preventatively in high-risk weather, use resistant varieties.' },
+
+  { id:'rust', type:'fungal', img:'photos/rust.jpg', common:'Leaf Rust', latin:'Puccinia / Uromyces spp.',
+    tags:['leaf_any','pustules','orange','warm','humid'],
+    desc:'Small raised orange to rust-colored pustules erupt on leaf undersides, leaving a powdery residue on hands or clothing when brushed.',
+    treat:'Remove volunteer plants and infected debris, apply triazole or strobilurin fungicide, choose resistant cultivars.' },
+
+  { id:'anthracnose', type:'fungal', img:'photos/anthracnose.jpg', common:'Anthracnose', latin:'Colletotrichum spp.',
+    tags:['leaf_any','fruit','stem','spots_circular','rings','brown','black','wet','humid'],
+    desc:'Dark, sunken lesions with concentric rings develop on leaves, stems, and fruit, sometimes oozing pink spore masses in humid conditions.',
+    treat:'Prune for airflow, avoid working plants when wet, apply copper or mancozeb fungicide, rotate away from susceptible crops.' },
+
+  { id:'gray_mold', type:'fungal', img:'photos/gray_mold.jpg', common:'Gray Mold (Botrytis)', latin:'Botrytis cinerea',
+    tags:['flower','fruit','leaf_any','fuzzy_mold','gray','rot_soft','humid','cool'],
+    desc:'A soft brown rot covered in fuzzy gray-brown mold develops on flowers, fruit, and damaged tissue, especially after cool damp periods.',
+    treat:'Improve ventilation, remove spent flowers and dying tissue promptly, avoid overhead watering, apply fungicide labeled for Botrytis.' },
+
+  { id:'fusarium_wilt', type:'fungal', img:'photos/fusarium_wilt.jpg', common:'Fusarium Wilt', latin:'Fusarium oxysporum',
+    tags:['whole','wilting','vascular_stripe','yellow','warm','root'],
+    desc:'One side of the plant often yellows and wilts first, and a brown discoloration is visible in the stem\'s vascular tissue when cut lengthwise, even with adequate soil moisture.',
+    treat:'Remove and destroy infected plants, solarize soil, rotate to non-host crops for several years, plant resistant varieties — no effective curative fungicide exists.' },
+
+  { id:'verticillium_wilt', type:'fungal', img:'photos/verticillium_wilt.jpg', common:'Verticillium Wilt', latin:'Verticillium dahliae',
+    tags:['whole','wilting','vascular_stripe','yellow','leaf_lower','cool','root'],
+    desc:'Lower leaves yellow and wilt in a V-shaped pattern from the leaf margin inward, with brownish streaking in the stem\'s vascular ring, worsening in cooler weather.',
+    treat:'Remove infected plants and roots, rotate with non-host crops for 4+ years, avoid excess nitrogen, use resistant varieties.' },
+
+  { id:'septoria', type:'fungal', img:'photos/septoria.jpg', common:'Septoria Leaf Spot', latin:'Septoria lycopersici',
+    tags:['leaf_lower','spots_circular','black','brown','humid','wet'],
+    desc:'Numerous small circular spots with dark margins and tan-gray centers speckle the lower leaves, which yellow and drop as infection climbs the plant.',
+    treat:'Remove infected lower leaves, mulch to reduce splash, avoid overhead watering, apply chlorothalonil-based fungicide.' },
+
+  { id:'sooty_mold', type:'fungal', img:'photos/sooty_mold.jpg', common:'Sooty Mold', latin:'Capnodium spp.',
+    tags:['leaf_any','stem','black','poor_air'],
+    desc:'A black, soot-like coating grows on the surface of leaves and stems, following the sugary honeydew left behind by aphids or scale insects rather than infecting tissue directly.',
+    treat:'Control the underlying insect pest (aphids, whitefly, scale), wash foliage with mild soapy water to remove residue.' },
+
+  { id:'white_mold', type:'fungal', img:'photos/white_mold.jpg', common:'White Mold (Sclerotinia)', latin:'Sclerotinia sclerotiorum',
+    tags:['stem','whole','rot_soft','white','wilting','wet','cool','poor_air'],
+    desc:'A white cottony growth develops at stem bases or branch junctions, causing sudden wilting; hard black resting bodies (sclerotia) may be visible inside split stems.',
+    treat:'Improve spacing and airflow, avoid dense canopy, rotate with grasses, remove infected debris, apply fungicide at flowering in high-risk fields.' },
+
+  { id:'black_spot', type:'fungal', img:'photos/black_spot.jpg', common:'Black Spot', latin:'Diplocarpon rosae',
+    tags:['leaf_any','spots_irregular','black','purple','yellow','wet','humid'],
+    desc:'Black spots with feathered, irregular margins form on leaves, often surrounded by a yellow halo, leading to early leaf drop on susceptible plants.',
+    treat:'Remove fallen infected leaves each season, avoid wetting foliage, apply fungicide on a preventive schedule, prune for airflow.' },
+
+  { id:'smut', type:'fungal', img:'photos/smut.jpg', common:'Smut', latin:'Ustilago spp.',
+    tags:['fruit','stem','whole','galls','black','warm'],
+    desc:'Grayish-white galls swell on ears, stems, or tassels and rupture to release a mass of powdery black spores as they mature.',
+    treat:'Remove and destroy galls before rupture, avoid mechanical wounding of plants, rotate crops, use resistant hybrids.' },
+
+  { id:'apple_scab', type:'fungal', img:'photos/apple_scab.jpg', common:'Apple Scab', latin:'Venturia inaequalis',
+    tags:['leaf_any','fruit','scab','spots_irregular','brown','black','wet','cool'],
+    desc:'Olive-green to black scabby lesions form on leaves and fruit, with fruit developing corky, rough patches that can crack as they enlarge.',
+    treat:'Rake and destroy fallen leaves in autumn, prune for airflow, apply fungicide from bud break through wet spring weather, plant resistant cultivars.' },
+
+  { id:'citrus_canker', type:'bacterial', img:'photos/citrus_canker.jpg', common:'Citrus Canker', latin:'Xanthomonas citri subsp. citri',
+    tags:['leaf_any','stem','fruit','canker','spots_circular','brown','yellow','wet','humid'],
+    desc:'Raised, corky lesions with water-soaked, yellow-haloed margins erupt on leaves, twigs, and fruit of citrus trees, often coalescing into cracked canker-like patches.',
+    treat:'Prune and destroy infected tissue, disinfect tools between cuts, apply copper bactericide sprays, avoid overhead irrigation, use certified disease-free planting stock.' },
+
+  { id:'soft_rot', type:'bacterial', img:'photos/soft_rot.jpg', common:'Bacterial Soft Rot', latin:'Pectobacterium / Erwinia spp.',
+    tags:['fruit','root','rot_soft','whole','black','brown','wet','warm'],
+    desc:'Tissue rapidly breaks down into a slimy, foul-smelling mass, often starting at a wound and spreading through fleshy fruits, tubers, or rhizomes within days.',
+    treat:'Remove and destroy affected produce immediately, improve field drainage and storage ventilation, avoid wounding during harvest and handling, store at cool dry temperatures.' },
+
+  { id:'dry_rot', type:'fungal', img:'photos/dry_rot.jpg', common:'Dry Rot', latin:'Fusarium spp.',
+    tags:['root','fruit','rot_dry','brown','black','cool'],
+    desc:'Sunken, wrinkled, dry lesions develop on tubers or corms in storage, with internal tissue turning powdery and discolored as the rot progresses inward.',
+    treat:'Cure tubers properly before storage, discard damaged or infected stock, maintain cool dry storage conditions, rotate crops and avoid wounding at harvest.' },
+
+  { id:'stem_canker', type:'fungal', img:'photos/stem_canker.jpg', common:'Stem Canker', latin:'Diaporthe / Phomopsis spp.',
+    tags:['stem','canker','rot_dry','brown','black','wet'],
+    desc:'Sunken, discolored lesions girdle the stem at the site of infection, often at a wound or node, eventually cutting off water flow and causing dieback above the canker.',
+    treat:'Prune out and destroy cankered stems well below the lesion, disinfect pruning tools, avoid stem wounding, apply protectant fungicide at pruning cuts in high-risk periods.' },
+
+  { id:'mummification', type:'fungal', img:'photos/mummification.jpg', common:'Fruit Mummification', latin:'Monilinia spp.',
+    tags:['fruit','rot_dry','brown','gray','fuzzy_mold','humid','wet'],
+    desc:'Infected fruit shrivels, hardens, and turns leathery brown-gray as it dries on the tree or vine, often remaining attached as a "mummy" that carries the pathogen into the next season.',
+    treat:'Remove and destroy mummified fruit from the plant and ground, prune for airflow, apply fungicide during bloom and fruit development, sanitize the orchard floor each season.' },
+
+  { id:'plumeria_rust', type:'fungal', img:'photos/plumeria_rust.jpg', common:'Plumeria Rust', latin:'Coleosporium plumeriae',
+    tags:['leaf_any','pustules','orange','yellow','humid','warm'],
+    desc:'Bright orange-yellow powdery pustules erupt on the undersides of plumeria leaves, with corresponding yellow blotches on the upper surface, leading to early leaf drop.',
+    treat:'Remove and destroy fallen infected leaves, avoid overhead watering, improve air circulation between plants, apply sulfur or copper-based fungicide at first sign.' },
+
+  { id:'false_smut_rice', type:'fungal', img:'photos/false_smut_rice.jpg', common:'False Smut of Rice', latin:'Ustilaginoidea virens',
+    tags:['fruit','galls','yellow','green','black','humid','wet'],
+    desc:'Individual rice grains are replaced by velvety yellow-green fungal balls that darken to black as they mature, replacing the grain within infected panicles.',
+    treat:'Use resistant varieties, avoid excess nitrogen fertilization, apply fungicide at boot-to-heading stage in high-risk conditions, avoid overly dense planting.' },
+
+  { id:'papaya_ring_disease', type:'viral', img:'photos/papaya_ring_disease.jpg', common:'Papaya Ring Spot Disease', latin:'Papaya ringspot virus',
+    tags:['fruit','leaf_any','leaf_distortion','vein_clearing','streak','yellow','whole'],
+    desc:'Concentric ring-shaped spots mark the fruit surface while leaves show vein clearing, mottling, and distortion, often accompanied by stunted, misshapen growth of the whole plant.',
+    treat:'Remove and destroy infected plants promptly, control aphid vectors, use virus-resistant or tolerant papaya varieties, avoid planting near other infected cucurbits or papaya.' },
+
+  { id:'damping_off', type:'fungal', img:'photos/damping_off.jpg', common:'Damping-off', latin:'Pythium / Rhizoctonia spp.',
+    tags:['whole','root','rot_soft','wilting','brown','black','wet','overhead','cool'],
+    desc:'Seedlings collapse suddenly at the soil line shortly after emergence, with a thin, water-soaked, discolored stem lesion, often wiping out entire seed trays or nursery beds.',
+    treat:'Improve soil drainage and avoid overwatering, use sterile potting media, avoid overcrowding seedlings, apply a seed treatment or drench fungicide in nursery settings.' },
+
+  { id:'weligama_coconut_wilt', type:'phytoplasma', img:'photos/weligama_coconut_wilt.jpg', common:'Weligama Coconut Leaf Wilt', latin:'Candidatus Phytoplasma sp.',
+    tags:['leaf_any','whole','yellow','necrosis','tip_necrosis','wilting','witches_broom'],
+    desc:'Coconut fronds show yellowing and drying from the tip inward, with progressive leaf wilting, stunted new growth, and reduced nut yield over several years, spreading slowly through a plantation.',
+    treat:'Remove and destroy severely affected palms to reduce spread, control phloem-feeding insect vectors, avoid moving planting material from affected zones, report suspected cases to local plant protection authorities.' },
+];
+
+const ICONS = {
+  leaf: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 20C4 20 4 10 12 6C20 10 20 20 4 20Z"/><path d="M4 20C8 14 12 10 18 7"/></svg>',
+};
+
+let selected = new Set();
+
+function buildForm(){
+  const form = document.getElementById('form');
+  form.innerHTML = GROUPS.map(g => `
+    <div class="group">
+      <p class="group-title">${g.title}</p>
+      ${g.options.map(([id,label]) => `
+        <label class="opt">
+          <input type="checkbox" data-tag="${id}">
+          <span>${label}</span>
+        </label>
+      `).join('')}
+    </div>
+  `).join('') + `<button class="reset-btn" id="resetBtn">Clear all symptoms</button>`;
+
+  form.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if(cb.checked) selected.add(cb.dataset.tag);
+      else selected.delete(cb.dataset.tag);
+      render();
+    });
+  });
+  document.getElementById('resetBtn').addEventListener('click', () => {
+    selected.clear();
+    form.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+    render();
+  });
+}
+
+function score(disease){
+  const overlap = disease.tags.filter(t => selected.has(t));
+  if(selected.size === 0) return {pct:0, overlap:[]};
+  // precision against disease's own tag set, weighted toward recall of user's selections
+  const recall = overlap.length / selected.size;
+  const precision = overlap.length / disease.tags.length;
+  const pct = Math.round(((recall*0.65) + (precision*0.35)) * 100);
+  return {pct, overlap};
+}
+
+function render(){
+  document.getElementById('countTag').textContent = `${selected.size} symptom${selected.size===1?'':'s'} selected`;
+  const resultsEl = document.getElementById('results');
+
+  if(selected.size === 0){
+    resultsEl.innerHTML = `<div class="empty-state">Select symptoms on the left to begin cross-referencing.<br>Matches will appear here, ranked by overlap.</div>`;
+    return;
+  }
+
+  const ranked = DISEASES.map(d => ({...d, ...score(d)}))
+    .filter(d => d.overlap.length > 0)
+    .sort((a,b) => b.pct - a.pct)
+    .slice(0, 8);
+
+  if(ranked.length === 0){
+    resultsEl.innerHTML = `<div class="empty-state">No matches found for this combination yet. Try broader symptoms like plant part or color.</div>`;
+    return;
+  }
+
+  const tagLabel = id => {
+    for(const g of GROUPS){ const f = g.options.find(o => o[0]===id); if(f) return f[1]; }
+    return id;
+  };
+
+  const TYPE_LABEL = { fungal:'Fungal', bacterial:'Bacterial', viral:'Viral', phytoplasma:'Phytoplasma', oomycete:'Oomycete' };
+
+  resultsEl.innerHTML = `<div class="cards">` + ranked.map((d,i) => `
+    <div class="card ${i===0 ? 'best' : ''}">
+      ${i===0 ? '<span class="stamp">Closest match</span>' : ''}
+      <div class="icon" onclick="openGallery('${d.id}', '${d.common.replace(/'/g,"\\'")}')">
+        <img src="${d.img}" alt="${d.common}"
+             onerror="window.__photoFallback(this,'${d.id}',1)">
+      </div>
+      <div class="card-body">
+        <p class="common">${d.common}</p>
+        <p class="latin">${d.latin} <span class="type-badge type-${d.type}">${TYPE_LABEL[d.type] || d.type}</span></p>
+        <p class="desc">${d.desc}</p>
+        <div class="matched-tags">${d.overlap.map(t => `<span class="tag">${tagLabel(t)}</span>`).join('')}</div>
+        <div class="treat"><b>Field response</b><br>${d.treat}</div>
+      </div>
+      <div class="match-col">
+        <div class="match-pct">${d.pct}%</div>
+        <div class="match-label">match</div>
+        <div class="bar"><i style="width:${d.pct}%"></i></div>
+      </div>
+    </div>
+  `).join('') + `</div>`;
+}
+
+buildForm();
+render();
+
+// ---------- MULTI-PHOTO SUPPORT ----------
+// Each disease can have up to MAX_PHOTOS numbered files:
+//   powdery_mildew.jpg, powdery_mildew_2.jpg, powdery_mildew_3.jpg ...
+const MAX_PHOTOS = 6;
+function photoCandidates(id){
+  const list = [`photos/${id}.jpg`];
+  for(let i=2;i<=MAX_PHOTOS;i++) list.push(`photos/${id}_${i}.jpg`);
+  return list;
+}
+
+// thumbnail fallback chain — tries each numbered file in order
+window.__photoFallback = function(imgEl, id, idx){
+  const cands = photoCandidates(id);
+  if(idx >= cands.length){
+    const div = document.createElement('div');
+    div.className = 'no-photo';
+    div.textContent = 'no photo yet';
+    imgEl.replaceWith(div);
+    return;
+  }
+  imgEl.onerror = () => window.__photoFallback(imgEl, id, idx+1);
+  imgEl.src = cands[idx];
+};
+
+// ---------- LIGHTBOX GALLERY ----------
+let lightboxState = null;
+
+async function openGallery(id, title){
+  const candidates = photoCandidates(id);
+  const results = await Promise.all(candidates.map(src => new Promise(res => {
+    const img = new Image();
+    img.onload = () => res(src);
+    img.onerror = () => res(null);
+    img.src = src;
+  })));
+  const photos = results.filter(Boolean);
+  if(photos.length === 0) return;
+  lightboxState = { photos, index:0, title };
+  renderLightbox();
+}
+
+function renderLightbox(){
+  let overlay = document.getElementById('lightboxOverlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'lightboxOverlay';
+    overlay.className = 'lightbox-overlay';
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', e => { if(e.target === overlay) closeLightbox(); });
+  }
+  const { photos, index, title } = lightboxState;
+  overlay.innerHTML = `
+    <div class="lightbox-box">
+      <button class="lb-close" onclick="closeLightbox()">&times;</button>
+      <div class="lb-title">${title} — photo ${index+1} of ${photos.length}</div>
+      <div class="lb-stage">
+        ${photos.length>1 ? `<button class="lb-nav" onclick="navLightbox(-1)">&#8592;</button>` : ''}
+        <img src="${photos[index]}" class="lb-img">
+        ${photos.length>1 ? `<button class="lb-nav" onclick="navLightbox(1)">&#8594;</button>` : ''}
+      </div>
+      ${photos.length>1 ? `<div class="lb-thumbs">${photos.map((p,i) =>
+        `<img src="${p}" class="lb-thumb ${i===index?'active':''}" onclick="jumpLightbox(${i})">`).join('')}</div>` : ''}
+    </div>`;
+  overlay.style.display = 'flex';
+}
+
+function navLightbox(delta){
+  lightboxState.index = (lightboxState.index + delta + lightboxState.photos.length) % lightboxState.photos.length;
+  renderLightbox();
+}
+function jumpLightbox(i){ lightboxState.index = i; renderLightbox(); }
+function closeLightbox(){
+  const overlay = document.getElementById('lightboxOverlay');
+  if(overlay) overlay.style.display = 'none';
+  lightboxState = null;
+}
+document.addEventListener('keydown', e => {
+  if(!lightboxState) return;
+  if(e.key === 'Escape') closeLightbox();
+  if(e.key === 'ArrowLeft') navLightbox(-1);
+  if(e.key === 'ArrowRight') navLightbox(1);
+});
+
+</script>
+</body>
+</html>
